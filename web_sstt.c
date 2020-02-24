@@ -17,7 +17,6 @@
 #define PROHIBIDO	403
 #define NOENCONTRADO	404
 
-
 struct {
 	char *ext;
 	char *filetype;
@@ -70,33 +69,52 @@ void process_web_request(int descriptorFichero)
 	//
 	// Definir buffer y variables necesarias para leer las peticiones
 	//
-	
+	char buffer[BUFSIZE] = {0};
 	
 	//
 	// Leer la petición HTTP
 	//
-	
+	size_t tam_peticion = read(descriptorFichero, buffer, BUFSIZE);
+	printf("%s", buffer);
 	
 	//
 	// Comprobación de errores de lectura
 	//
-	
+	if ( tam_peticion < 0 ) {
+		close(descriptorFichero);
+		debug(ERROR, "system call", "read", 0);
+	}
 	
 	//
 	// Si la lectura tiene datos válidos terminar el buffer con un \0
 	//
-	
+
 	
 	//
 	// Se eliminan los caracteres de retorno de carro y nueva linea
 	//
+	char *primera = strtok(buffer, "\r\n");
+	// Obtenemos los valores de la primera linea
+	char aux[BUFSIZE] = {0};
+	char *metodo, *url, *version;
+	char *save_ptr;
 	
+	strcpy(aux, primera);
+
+	// Obtenemos el metodo
+	metodo = strtok_r(primera, " ", &save_ptr);
+	// Obtenemos la url
+	url = strtok_r(NULL, " ", &save_ptr);
+	// Obtenemos la version
+	version = strtok_r(NULL, " ", &save_ptr);
 	
 	//
 	//	TRATAR LOS CASOS DE LOS DIFERENTES METODOS QUE SE USAN
 	//	(Se soporta solo GET)
 	//
-	
+	if ( strcmp(metodo, "GET") == 0 ) {
+		printf("Es un metodo GET");
+	}
 	
 	//
 	//	Como se trata el caso de acceso ilegal a directorios superiores de la
