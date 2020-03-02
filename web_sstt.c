@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
+#include <time.h>
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -118,22 +119,54 @@ void process_web_request(int descriptorFichero)
 	char path[_PC_PATH_MAX] = {0};
 
 	if ( strcmp(metodo, "GET") == 0 ) {
-		printf("Es un metodo GET");
-		
-		strcat(path, ".");
-		strcat(path, url);
 
-		if((stat(path, &fileStat)) < 0 ) {
-			//Error de fichero no encontrado
-		}
-		
 		//Si el contenido de url es / le mandamos al cliente index.html
 		if( strcmp(url, "/") == 0 ) {
-			strcat(path, "/index.html");
-		}
+			strcat(path, "index.html");
+			
+			char response[BUFSIZE] = {0};
+			
+			int file = open(path, O_RDONLY);
+			
+			if(file) {
+				// Se contruye la respuesta http response
+				strcat(response, version);
+				strcat(response, " 200 OK\r\n");
+				// Tamaño del fichero
+				char contentlenght[128] = {0};
+				fstat(file, &fileStat);
+				sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
+				// Tipo de contenido
+				strcat(response, "Content-Type: ");
+				strcat(response, extensions[9].filetype);
+				strcat(response, "\r\n");
+				// Tamaño del archivo
+				strcat(response, contentlenght);
+				strcat(response, "Server: web_sstt\r\n");
 
-		
-	
+				char buf[1000];
+  				time_t now = time(0);
+				struct tm tm = *gmtime(&now);
+				strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
+				strcat(response, "Date: ");
+				strcat(response, buf);
+
+				printf("%s\n", response);
+
+				write(descriptorFichero, response,  strlen(response));
+			
+				// Pasar el fichero
+				char bufferfile[BUFSIZE] = { 0 };
+				int readbytes;
+
+				while( (readbytes = read(file, bufferfile, BUFSIZE-1)) ) {
+					write(descriptorFichero, bufferfile, BUFSIZE-1);
+					
+				}
+
+				close(file);
+			} else printf("prueba abrir archivo\n");
+		}
 	}
 	
 	//
@@ -161,68 +194,6 @@ void process_web_request(int descriptorFichero)
 	//
 
 	// Obtenemos la extension del fichero que vamos a mandar
-	char *extension = strchr(path, '.');
-	// Eliminamos el punto
-	extension = extension + 1;
-
-	char response[BUFSIZE] = {0};
-
-	int nExt = (sizeof(extensions)/sizeof(extensions[0].ext))/2 - 1;
-	int indexType = -1;
-
-	for(int i = 0; i < nExt; i++) {
-		if(strcmp(extension, extensions[i].ext) == 0) {
-			indexType = i;
-		}
-	}
-
-	if ( indexType < 0 ) {
-		// Error de tipe de fichero
-	}
-	if ( access(path, R_OK) != -1 ) {
-		FILE *file = fopen(path, "rb");
-		if(file) {
-			// Se contruye la respuesta http response
-			strcat(response, version);
-			strcat(response, " 200 OK\r\n");
-			// Tamaño del fichero
-			char contentlenght[128] = {0};
-			sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
-			// Tipo de contenido
-			strcat(response, "Content-Type: ");
-			strcat(response, extensions[indexType].filetype);
-			strcat(response, "\r\n");
-			// Tamaño del archivo
-			strcat(response, contentlenght);
-			strcat(response, "Server: web_sstt\r\n");
-
-			time_t now = time(NULL);
-			struct tm * now_tm;
-			now_tm = gmtime(&now);
-
-			char bufferTime[128] = {0};
-			strftime(bufferTime, sizeof(bufferTime), "Date: %a, %e, %b %Y %T %Z\r\n", now_tm);
-			strcat(response, bufferTime);
-
-			size_t nbytes = write(descriptorFichero, response, strlen(response));
-			if( strlen(response) != nbytes ) {
-				nbytes += write(descriptorFichero, response+nbytes, strlen(response)-nbytes);
-			}
-			// Mandamos los datos
-			char bufferFile[BUFSIZE] = {0};
-			int readBytes;
-			while ((readBytes = fread(bufferFile, 1, BUFSIZE, file))) {
-				if (readBytes < 0) {
-					close(descriptorFichero);
-					//ERROR
-				}
-				write(descriptorFichero, bufferFile, readBytes);
-				memset(bufferFile, 0, BUFSIZE);
-			}
-			fclose(file);
-
-		}
-	}
 	
 	close(descriptorFichero);
 	exit(1);
