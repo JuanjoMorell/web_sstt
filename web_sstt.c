@@ -150,6 +150,7 @@ void process_web_request(int descriptorFichero)
 				strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
 				strcat(response, "Date: ");
 				strcat(response, buf);
+				strcat(response, "\r\n");
 
 				printf("%s\n", response);
 
@@ -165,11 +166,82 @@ void process_web_request(int descriptorFichero)
 				}
 
 				close(file);
-			} else printf("prueba abrir archivo\n");
+			} else {
+				// TODO Error no exite el index
+			}
 		} else {
 			// El cliente pide un archivo distinto al index.html
-			printf("%s\n", url);
-		}
+			char response[BUFSIZE] = {0};
+			url++;
+			strcat(path, url);
+			
+			int file = open(path, O_RDONLY);
+
+			if (file != -1) {
+				// Se contruye la respuesta http response
+				strcat(response, version);
+				strcat(response, " 200 OK\r\n");
+				// Tamaño del fichero
+				char contentlenght[128] = {0};
+				fstat(file, &fileStat);
+				sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
+				// Tipo de contenido
+				strcat(response, "Content-Type: ");
+
+				char *extension, *nombreFichero;
+				int nExtension = -1;
+
+				nombreFichero = strtok(url, ".");
+				extension = url + strlen(nombreFichero) + 1;
+				
+				for(int i = 0; i < 10; i++) {
+					if(strcmp(extensions[i].ext, extension) == 0) {
+						nExtension = i;
+						break;
+					} 
+				}
+				if (nExtension == -1) {
+					// TODO Error de extension
+				}
+
+				strcat(response, extensions[nExtension].ext);
+				
+				strcat(response, "\r\n");
+				// Tamaño del archivo
+				strcat(response, contentlenght);
+				strcat(response, "Server: web_sstt\r\n");
+
+				char buf[1000];
+  				time_t now = time(0);
+				struct tm tm = *gmtime(&now);
+				strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
+				strcat(response, "Date: ");
+				strcat(response, buf);
+				strcat(response, "\r\n");
+
+				printf("%s\n", response);
+				
+				write(descriptorFichero, response,  strlen(response));
+			
+				// Pasar el fichero
+				char bufferfile[BUFSIZE] = { 0 };
+				int readbytes;
+
+				while( (readbytes = read(file, response, BUFSIZE-1)) ) {
+					write(descriptorFichero, response, readbytes);
+					memset(bufferfile, 0, BUFSIZE);
+					
+				}
+
+				close(file);
+								
+			} else {
+				// TODO Error no exite el archivo
+			}
+		} 
+	} else if (strcmp(metodo, "POST") == 0) {
+		printf("Mensaje Post\n");
+		
 	}
 	
 	//
