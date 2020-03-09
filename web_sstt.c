@@ -166,6 +166,9 @@ void process_web_request(int descriptorFichero)
 
 				close(file);
 			} else printf("prueba abrir archivo\n");
+		} else {
+			// El cliente pide un archivo distinto al index.html
+			printf("%s\n", url);
 		}
 	}
 	
