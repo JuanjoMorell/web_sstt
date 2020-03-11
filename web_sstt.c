@@ -241,7 +241,13 @@ void process_web_request(int descriptorFichero)
 		} 
 	} else if (strcmp(metodo, "POST") == 0) {
 		printf("Mensaje Post\n");
+		char response[BUFSIZE] = {0};
 		
+		// TODO Obtener la string con el nombre del email
+		
+
+
+
 	}
 	
 	//
