@@ -78,6 +78,9 @@ void process_web_request(int descriptorFichero)
 	//
 	size_t tam_peticion = read(descriptorFichero, buffer, BUFSIZE);
 	printf("%s", buffer);
+
+	char mensaje[BUFSIZE] = {0};
+	memcpy(mensaje, buffer, strlen(buffer));
 	
 	//
 	// Comprobación de errores de lectura
@@ -138,7 +141,7 @@ void process_web_request(int descriptorFichero)
 				sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
 				// Tipo de contenido
 				strcat(response, "Content-Type: ");
-				strcat(response, extensions[9].filetype);
+				strcat(response, extensions[9].ext);
 				strcat(response, "\r\n");
 				// Tamaño del archivo
 				strcat(response, contentlenght);
@@ -230,7 +233,6 @@ void process_web_request(int descriptorFichero)
 				while( (readbytes = read(file, response, BUFSIZE-1)) ) {
 					write(descriptorFichero, response, readbytes);
 					memset(bufferfile, 0, BUFSIZE);
-					
 				}
 
 				close(file);
@@ -240,13 +242,68 @@ void process_web_request(int descriptorFichero)
 			}
 		} 
 	} else if (strcmp(metodo, "POST") == 0) {
-		printf("Mensaje Post\n");
 		char response[BUFSIZE] = {0};
 		
-		// TODO Obtener la string con el nombre del email
+		// El mensaje que recibimos esta en mensaje
+		char delim[] = "\n\n";
+		char *ptr = strtok(mensaje, delim);
+
+		while( ptr != NULL ) {
+			ptr = strtok(NULL, delim);
+			if(strstr(ptr, "email")) break;
+		}
 		
+		char *email = strtok(ptr, "=");
+		email = strtok(NULL, "=");
 
+		int file = open("correo_error.html", O_RDONLY);
 
+		// @ == %40
+		if ( strstr(email, "juanjose.morellf%40um.es") ) {
+			file = open("correo_ok.html", O_RDONLY);
+		}
+		
+		if (file) {
+			strcat(response, version);
+			strcat(response, " 200 OK\r\n");
+
+			char contentlenght[128] = {0};
+			fstat(file, &fileStat);
+			sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
+			// Tipo de contenido
+			strcat(response, "Content-Type: ");
+			strcat(response, extensions[9].ext);
+			strcat(response, "\r\n");
+			// Tamaño del archivo
+			strcat(response, contentlenght);
+			strcat(response, "Server: web_sstt\r\n");
+
+			char buf[1000];
+			time_t now = time(0);
+			struct tm tm = *gmtime(&now);
+			strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
+			strcat(response, "Date: ");
+			strcat(response, buf);
+			strcat(response, "\r\n");
+
+			printf("%s\n", response);
+
+			write(descriptorFichero, response,  strlen(response));
+			
+			// Pasar el fichero
+			char bufferfile[BUFSIZE] = { 0 };
+			int readbytes;
+
+			while( (readbytes = read(file, bufferfile, BUFSIZE-1)) ) {
+				write(descriptorFichero, bufferfile, BUFSIZE-1);
+					
+			}
+
+			close(file);
+
+		} else {
+			// TODO Mandar mensaje de error
+		}
 
 	}
 	
