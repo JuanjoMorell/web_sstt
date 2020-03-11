@@ -23,7 +23,7 @@ struct {
 	char *ext;
 	char *filetype;
 } extensions [] = {
-	{"gif", "image/gif" },
+	{"mp4", "video/mp4" },
 	{"jpg", "image/jpg" },
 	{"jpeg","image/jpeg"},
 	{"png", "image/png" },
@@ -230,8 +230,8 @@ void process_web_request(int descriptorFichero)
 				char bufferfile[BUFSIZE] = { 0 };
 				int readbytes;
 
-				while( (readbytes = read(file, response, BUFSIZE-1)) ) {
-					write(descriptorFichero, response, readbytes);
+				while( (readbytes = read(file, bufferfile, BUFSIZE-1)) ) {
+					write(descriptorFichero, bufferfile, readbytes);
 					memset(bufferfile, 0, BUFSIZE);
 				}
 

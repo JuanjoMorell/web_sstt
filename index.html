@@ -1,17 +1,47 @@
 <html>
+<style>
+    .bg-color{
+        background-color: lightgrey;
+    }
+</style>
 <head>
         <title>Servidor Simple para Servicios Telem&acute;ticos</title>
 </head>
-<body bgcolor="lightgray">
-    <h1>Esta es una pagina de prueba</h1>
-
-    <img src="logo-um.jpg">
-    <p>Es un ejemplo simple pero funcional</p>
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" rel="stylesheet"/>
+<body class="bg-color">
     
-    <form method="POST" action="/accion_form.html">
-    Correo electr&oacute;nico:<br>
-    <input type="text" name="email" value=""><br>
-    <input type="submit" value="Enviar">
-    </form>
+    <br>
+
+    <div class="container bg-dark">
+        <div class="row">
+          <div class="col">
+            <img src="logo-um.jpg">
+          </div>
+          <div class="col">
+            <h1 class="text-light">Esta es una pagina de prueba</h1>
+          </div>
+        </div>
+    </div>
+    
+    <br>
+
+    <center>
+        <p>Es un ejemplo simple pero funcional</p>
+    
+        <form method="POST" action="/accion_form.html">
+        Correo electr&oacute;nico:<br>
+        <input type="text" name="email" value=""><br><br>
+        <input type="submit" value="Enviar">
+        </form>
+
+        <br>
+
+        <video width="640" height="480" controls>
+            <source src="caida.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </center>
+
+    
 </body>
 </html>
