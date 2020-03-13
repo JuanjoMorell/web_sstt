@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/time.h>
 
 #define VERSION		24
 #define BUFSIZE		8096
@@ -62,42 +63,23 @@ void debug(int log_message_type, char *message, char *additional_info, int socke
 	if(log_message_type == ERROR || log_message_type == NOENCONTRADO || log_message_type == PROHIBIDO) exit(3);
 }
 
-
-
-
 void process_web_request(int descriptorFichero)
 {
 	debug(LOG,"request","Ha llegado una peticion",descriptorFichero);
-	//
-	// Definir buffer y variables necesarias para leer las peticiones
-	//
+
 	char buffer[BUFSIZE] = {0};
 	
-	//
-	// Leer la petición HTTP
-	//
 	size_t tam_peticion = read(descriptorFichero, buffer, BUFSIZE);
 	printf("%s", buffer);
 
 	char mensaje[BUFSIZE] = {0};
 	memcpy(mensaje, buffer, strlen(buffer));
 	
-	//
-	// Comprobación de errores de lectura
-	//
 	if ( tam_peticion < 0 ) {
 		close(descriptorFichero);
 		debug(ERROR, "system call", "read", 0);
 	}
 	
-	//
-	// Si la lectura tiene datos válidos terminar el buffer con un \0
-	//
-
-	
-	//
-	// Se eliminan los caracteres de retorno de carro y nueva linea
-	//
 	char *primera = strtok(buffer, "\r\n");
 	// Obtenemos los valores de la primera linea
 	char aux[BUFSIZE] = {0};
@@ -243,9 +225,8 @@ void process_web_request(int descriptorFichero)
 		} 
 	} else if (strcmp(metodo, "POST") == 0) {
 		char response[BUFSIZE] = {0};
-		
-		// El mensaje que recibimos esta en mensaje
 		char delim[] = "\n\n";
+
 		char *ptr = strtok(mensaje, delim);
 
 		while( ptr != NULL ) {
@@ -253,20 +234,67 @@ void process_web_request(int descriptorFichero)
 			if(strstr(ptr, "email")) break;
 		}
 		
+		size_t tam = strlen(ptr);
+		if ( tam == 6 ) {
+			printf("No se ha escrito un correo\n");
+			int file = open("index_fallo.html", O_RDONLY);
+			
+			if (file) {
+				strcat(response, version);
+				strcat(response, " 200 OK\r\n");
+			
+				char contentlenght[128] = {0};
+				fstat(file, &fileStat);
+				sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
+				// Tipo de contenido
+				strcat(response, "Content-Type: ");
+				strcat(response, extensions[9].ext);
+				strcat(response, "\r\n");
+				// Tamaño del archivo
+				strcat(response, contentlenght);
+				strcat(response, "Server: web_sstt\r\n");
+
+				char buf[1000];
+				time_t now = time(0);
+				struct tm tm = *gmtime(&now);
+				strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
+				strcat(response, "Date: ");
+				strcat(response, buf);
+				strcat(response, "\r\n");
+
+				printf("%s\n", response);
+
+				write(descriptorFichero, response,  strlen(response));
+					
+				// Pasar el fichero
+				char bufferfile[BUFSIZE] = { 0 };
+				int readbytes;
+
+				while( (readbytes = read(file, bufferfile, BUFSIZE-1)) ) {
+					write(descriptorFichero, bufferfile, BUFSIZE-1);
+					
+				}
+		
+				close(file);
+			} else {
+				// TODO Mandar mensaje de error
+			}
+
+		}
+
 		char *email = strtok(ptr, "=");
 		email = strtok(NULL, "=");
 
 		int file = open("correo_error.html", O_RDONLY);
-
+		
 		// @ == %40
-		if ( strstr(email, "juanjose.morellf%40um.es") ) {
+		if (strstr(email, "juanjose.morellf%40um.es") ) {
 			file = open("correo_ok.html", O_RDONLY);
 		}
-		
 		if (file) {
 			strcat(response, version);
 			strcat(response, " 200 OK\r\n");
-
+		
 			char contentlenght[128] = {0};
 			fstat(file, &fileStat);
 			sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
@@ -289,50 +317,23 @@ void process_web_request(int descriptorFichero)
 			printf("%s\n", response);
 
 			write(descriptorFichero, response,  strlen(response));
-			
+				
 			// Pasar el fichero
 			char bufferfile[BUFSIZE] = { 0 };
 			int readbytes;
 
 			while( (readbytes = read(file, bufferfile, BUFSIZE-1)) ) {
 				write(descriptorFichero, bufferfile, BUFSIZE-1);
-					
+				
 			}
-
+		
 			close(file);
-
 		} else {
 			// TODO Mandar mensaje de error
 		}
 
 	}
-	
-	//
-	//	Como se trata el caso de acceso ilegal a directorios superiores de la
-	//	jerarquia de directorios
-	//	del sistema
-	//
-	
-	
-	//
-	//	Como se trata el caso excepcional de la URL que no apunta a ningún fichero
-	//	html
-	//
-	
-	
-	//
-	//	Evaluar el tipo de fichero que se está solicitando, y actuar en
-	//	consecuencia devolviendolo si se soporta u devolviendo el error correspondiente en otro caso
-	//
-	
-	
-	//
-	//	En caso de que el fichero sea soportado, exista, etc. se envia el fichero con la cabecera
-	//	correspondiente, y el envio del fichero se hace en blockes de un máximo de  8kB
-	//
 
-	// Obtenemos la extension del fichero que vamos a mandar
-	
 	close(descriptorFichero);
 	exit(1);
 }
