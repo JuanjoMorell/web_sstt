@@ -135,6 +135,7 @@ void process_web_request(int descriptorFichero)
 				strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
 				strcat(response, "Date: ");
 				strcat(response, buf);
+				strcat(response, "Connection: Keep-Alive\r\n");
 				strcat(response, "\r\n");
 
 				printf("%s\n", response);
@@ -174,6 +175,7 @@ void process_web_request(int descriptorFichero)
 				strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
 				strcat(response, "Date: ");
 				strcat(response, buf);
+				strcat(response, "Connection: Keep-Alive\r\n");
 				strcat(response, "\r\n");
 
 				printf("%s\n", response);
@@ -230,6 +232,7 @@ void process_web_request(int descriptorFichero)
 				strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
 				strcat(response, "Date: ");
 				strcat(response, buf);
+				strcat(response, "Connection: Keep-Alive\r\n");
 				strcat(response, "\r\n");
 
 				printf("%s\n", response);
@@ -263,6 +266,7 @@ void process_web_request(int descriptorFichero)
 				strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
 				strcat(response, "Date: ");
 				strcat(response, buf);
+				strcat(response, "Connection: Keep-Alive\r\n");
 				strcat(response, "\r\n");
 
 				printf("%s\n", response);
@@ -301,6 +305,7 @@ void process_web_request(int descriptorFichero)
 				strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
 				strcat(response, "Date: ");
 				strcat(response, buf);
+				strcat(response, "Connection: Keep-Alive\r\n");
 				strcat(response, "\r\n");
 
 				printf("%s\n", response);
@@ -345,6 +350,7 @@ void process_web_request(int descriptorFichero)
 				strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
 				strcat(response, "Date: ");
 				strcat(response, buf);
+				strcat(response, "Connection: Keep-Alive\r\n");
 				strcat(response, "\r\n");
 
 				printf("%s\n", response);
@@ -382,6 +388,7 @@ void process_web_request(int descriptorFichero)
 				strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
 				strcat(response, "Date: ");
 				strcat(response, buf);
+				strcat(response, "Connection: Keep-Alive\r\n");
 				strcat(response, "\r\n");
 
 				printf("%s\n", response);
@@ -421,6 +428,7 @@ void process_web_request(int descriptorFichero)
 			strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
 			strcat(response, "Date: ");
 			strcat(response, buf);
+			strcat(response, "Connection: Keep-Alive\r\n");
 			strcat(response, "\r\n");
 
 			printf("%s\n", response);
@@ -458,6 +466,7 @@ void process_web_request(int descriptorFichero)
 			strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
 			strcat(response, "Date: ");
 			strcat(response, buf);
+			strcat(response, "Connection: Keep-Alive\r\n");
 			strcat(response, "\r\n");
 
 			printf("%s\n", response);
@@ -469,7 +478,7 @@ void process_web_request(int descriptorFichero)
 		// Error tipo 400
 		char response[BUFSIZE] = {0};
 		strcat(response, version);
-		strcat(response, " 400 Bad Request\r\n");
+		strcat(response, " 405 Method Not Allowed\r\n");
 
 		char contentlenght[128] = {0};
 		sprintf(contentlenght, "Content-Lenght: %d\r\n", 0);
@@ -487,6 +496,7 @@ void process_web_request(int descriptorFichero)
 		strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
 		strcat(response, "Date: ");
 		strcat(response, buf);
+		strcat(response, "Connection: Keep-Alive\r\n");
 		strcat(response, "\r\n");
 
 		printf("%s\n", response);
