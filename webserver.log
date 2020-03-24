@@ -1212,3 +1212,83 @@ ERROR: system call:bind Errno=98 exiting pid=164
  INFO: conexión:cerrada:4
  INFO: conexión:cerrada:4
  INFO: conexión:cerrada:4
+ INFO: web server starting...:8080:202
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: conexión:cerrada:4
+ INFO: web server starting...:8080:101
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: web server starting...:8080:151
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: web server starting...:8080:198
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: web server starting...:8080:244
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: web server starting...:8080:291
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: web server starting...:8080:338
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: web server starting...:8080:406
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: web server starting...:8080:440
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: conexión:cerrada:4
+ INFO: conexión:cerrada:4
+ INFO: conexión:cerrada:4
+ INFO: request:Ha llegado una peticion:4
+ INFO: request:Ha llegado una peticion:4

@@ -19,6 +19,9 @@
 #define LOG			44
 #define PROHIBIDO	403
 #define NOENCONTRADO	404
+#define NOACEPTADO		406
+#define NOPERMITIDO		405
+#define OK				200
 #define PERSISTENCIA	1
 #define PERS_SEGUNDOS   10
 
@@ -83,6 +86,69 @@ int comprobar_fd(int fd, long int sec, long int usec) {
 
 }
 
+void respuesta(int descriptor, int file, int resp, int nExt) {
+
+	char response[BUFSIZE] = {0};
+	struct stat fileStat;
+
+	strcat(response, "HTTP/1.1");
+	switch(resp) {
+		case 200:
+			strcat(response, " 200 OK\r\n");
+			break;
+		case 404:
+			strcat(response, " 404 Not Found\r\n");
+			break;
+		case 405:
+			strcat(response, " 405 Method Not Allowed\r\n");
+			break;
+		case 406:
+			strcat(response, " 406 Not Acceptable\r\n");
+			break;
+		default:
+			strcat(response, " 400 Bad Request\r\n");
+			break;
+	}
+	
+	// Tipo de contenido
+	if(nExt != -1) {
+		strcat(response, "Content-Type: ");
+		strcat(response, extensions[nExt].ext);
+		strcat(response, "\r\n");
+	}
+	// Tamaño del fichero
+	char contentlenght[128] = {0};
+	if(file != -1) {
+		fstat(file, &fileStat);
+		sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
+		strcat(response, contentlenght);
+	}
+	
+	strcat(response, "Server: web_sstt\r\n");
+
+	char buf[1000];
+	time_t now = time(0);
+	struct tm tm = *gmtime(&now);
+	strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
+	strcat(response, "Date: ");
+	strcat(response, buf);
+	strcat(response, "Connection: Keep-Alive\r\n");
+	strcat(response, "Keep-Alive: 10\r\n");
+	strcat(response, "\r\n");
+
+	printf("%s\n", response);
+
+	write(descriptor, response,  strlen(response));
+					
+	// Pasar el fichero
+	char bufferfile[BUFSIZE] = { 0 };
+	int readbytes;
+
+	while( (readbytes = read(file, bufferfile, BUFSIZE-1)) ) {
+		write(descriptor, bufferfile, BUFSIZE-1);				
+	}
+}
+
 void process_web_request(int descriptorFichero)
 {
 	debug(LOG,"request","Ha llegado una peticion",descriptorFichero);
@@ -122,7 +188,6 @@ void process_web_request(int descriptorFichero)
 			//	(Se soporta solo GET)
 			//
 
-			struct stat fileStat;
 			char path[_PC_PATH_MAX] = {0};
 
 			if ( strcmp(metodo, "GET") == 0 ) {
@@ -131,102 +196,29 @@ void process_web_request(int descriptorFichero)
 				if( strcmp(url, "/") == 0 ) {
 					strcat(path, "index.html");
 					
-					char response[BUFSIZE] = {0};
-					
 					int file = open(path, O_RDONLY);
 					
 					if(file != -1) {
-						// Se contruye la respuesta http response
-						strcat(response, version);
-						strcat(response, " 200 OK\r\n");
-						// Tamaño del fichero
-						char contentlenght[128] = {0};
-						fstat(file, &fileStat);
-						sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
-						// Tipo de contenido
-						strcat(response, "Content-Type: ");
-						strcat(response, extensions[9].ext);
-						strcat(response, "\r\n");
-						// Tamaño del archivo
-						strcat(response, contentlenght);
-						strcat(response, "Server: web_sstt\r\n");
-
-						char buf[1000];
-						time_t now = time(0);
-						struct tm tm = *gmtime(&now);
-						strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
-						strcat(response, "Date: ");
-						strcat(response, buf);
-						strcat(response, "Connection: Keep-Alive\r\n");
-						strcat(response, "\r\n");
-
-						printf("%s\n", response);
-
-						write(descriptorFichero, response,  strlen(response));
-					
-						// Pasar el fichero
-						char bufferfile[BUFSIZE] = { 0 };
-						int readbytes;
-
-						while( (readbytes = read(file, bufferfile, BUFSIZE-1)) ) {
-							write(descriptorFichero, bufferfile, BUFSIZE-1);
-							
-						}
+						respuesta(descriptorFichero, file, OK, 9);
 
 						close(file);
 					} else {
 						// Error tipo  404
 						int file = open("error.html", O_RDONLY);
-						strcat(response, version);
-						strcat(response, " 404 Not Found\r\n");
-
-						char contentlenght[128] = {0};
-						fstat(file, &fileStat);
-						sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
-						// Tipo de contenido
-						strcat(response, "Content-Type: ");
-						strcat(response, extensions[9].ext);
-						strcat(response, "\r\n");
-						// Tamaño del archivo
-						strcat(response, contentlenght);
-						strcat(response, "Server: web_sstt\r\n");
-
-						char buf[1000];
-						time_t now = time(0);
-						struct tm tm = *gmtime(&now);
-						strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
-						strcat(response, "Date: ");
-						strcat(response, buf);
-						strcat(response, "Connection: Keep-Alive\r\n");
-						strcat(response, "\r\n");
-
-						printf("%s\n", response);
-
-						write(descriptorFichero, response,  strlen(response));
-
-						char bufferfile[BUFSIZE] = { 0 };
-						int readbytes;
-
-						while( (readbytes = read(file, bufferfile, BUFSIZE-1)) ) {
-							write(descriptorFichero, bufferfile, readbytes);
-							memset(bufferfile, 0, BUFSIZE);
-						}
-
+						respuesta(descriptorFichero, file, NOENCONTRADO, 9);
 						close(file);
 
 					}
 				} else {
 					// El cliente pide un archivo distinto al index.html
-					char response[BUFSIZE] = {0};
 					url++;
 					strcat(path, url);
 					
-					char *extension, *nombreFichero;
+					char *extension;
 					int nExtension = -1;
 
-					nombreFichero = strtok(url, ".");
-					extension = url + strlen(nombreFichero) + 1;
-						
+					extension = url + (strlen(url) - 3);
+
 					for(int i = 0; i < 10; i++) {
 						if(strcmp(extensions[i].ext, extension) == 0) {
 							nExtension = i;
@@ -235,110 +227,21 @@ void process_web_request(int descriptorFichero)
 					}
 					if (nExtension == -1) {
 						// Error tipo 406
-						strcat(response, version);
-						strcat(response, " 406 Not Acceptable\r\n");
-					
-						char contentlenght[128] = {0};
-						sprintf(contentlenght, "Content-Lenght: %d\r\n", 0);
-						// Tipo de contenido
-						strcat(response, "Content-Type: ");
-						strcat(response, extensions[9].ext);
-						strcat(response, "\r\n");
-						// Tamaño del archivo
-						strcat(response, contentlenght);
-						strcat(response, "Server: web_sstt\r\n");
-						
-						char buf[1000];
-						time_t now = time(0);
-						struct tm tm = *gmtime(&now);
-						strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
-						strcat(response, "Date: ");
-						strcat(response, buf);
-						strcat(response, "Connection: Keep-Alive\r\n");
-						strcat(response, "\r\n");
-
-						printf("%s\n", response);
-
-						write(descriptorFichero, response,  strlen(response));
+						respuesta(descriptorFichero, -1, NOACEPTADO, -1);
 					}
 
 					int file = open(path, O_RDONLY);
 
 					if (file != -1) {
-						// Se contruye la respuesta http response
-						strcat(response, version);
-						strcat(response, " 200 OK\r\n");
-						// Tamaño del fichero
-						char contentlenght[128] = {0};
-						fstat(file, &fileStat);
-						sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
-						// Tipo de contenido
-						strcat(response, "Content-Type: ");
-
-						strcat(response, extensions[nExtension].ext);
-						
-						strcat(response, "\r\n");
-						// Tamaño del archivo
-						strcat(response, contentlenght);
-						strcat(response, "Server: web_sstt\r\n");
-
-						char buf[1000];
-						time_t now = time(0);
-						struct tm tm = *gmtime(&now);
-						strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
-						strcat(response, "Date: ");
-						strcat(response, buf);
-						strcat(response, "Connection: Keep-Alive\r\n");
-						strcat(response, "\r\n");
-
-						printf("%s\n", response);
-						
-						write(descriptorFichero, response,  strlen(response));
-					
-						// Pasar el fichero
-						char bufferfile[BUFSIZE] = { 0 };
-						int readbytes;
-
-						while( (readbytes = read(file, bufferfile, BUFSIZE-1)) ) {
-							write(descriptorFichero, bufferfile, readbytes);
-							memset(bufferfile, 0, BUFSIZE);
-						}
-
-						close(file);
-										
+						respuesta(descriptorFichero, file, OK, nExtension);
+						close(file);		
 					} else {
 						// Error tipo 404
-						strcat(response, version);
-						strcat(response, " 404 Not Found\r\n");
-
-						char contentlenght[128] = {0};
-						sprintf(contentlenght, "Content-Lenght: %d\r\n", 0);
-						// Tipo de contenido
-						strcat(response, "Content-Type: ");
-						strcat(response, extensions[9].ext);
-						strcat(response, "\r\n");
-						// Tamaño del archivo
-						strcat(response, contentlenght);
-						strcat(response, "Server: web_sstt\r\n");
-
-						char buf[1000];
-						time_t now = time(0);
-						struct tm tm = *gmtime(&now);
-						strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
-						strcat(response, "Date: ");
-						strcat(response, buf);
-						strcat(response, "Connection: Keep-Alive\r\n");
-						strcat(response, "\r\n");
-
-						printf("%s\n", response);
-
-						write(descriptorFichero, response,  strlen(response));
+						respuesta(descriptorFichero, -1, NOENCONTRADO, -1);
 					}
 				} 
 			} else if (strcmp(metodo, "POST") == 0) {
-				char response[BUFSIZE] = {0};
 				char delim[] = "\n\n";
-
 				char *ptr = strtok(mensaje, delim);
 
 				while( ptr != NULL ) {
@@ -352,72 +255,12 @@ void process_web_request(int descriptorFichero)
 					int file = open("index_fallo.html", O_RDONLY);
 					
 					if (file != -1) {
-						strcat(response, version);
-						strcat(response, " 200 OK\r\n");
-					
-						char contentlenght[128] = {0};
-						fstat(file, &fileStat);
-						sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
-						// Tipo de contenido
-						strcat(response, "Content-Type: ");
-						strcat(response, extensions[9].ext);
-						strcat(response, "\r\n");
-						// Tamaño del archivo
-						strcat(response, contentlenght);
-						strcat(response, "Server: web_sstt\r\n");
-
-						char buf[1000];
-						time_t now = time(0);
-						struct tm tm = *gmtime(&now);
-						strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
-						strcat(response, "Date: ");
-						strcat(response, buf);
-						strcat(response, "Connection: Keep-Alive\r\n");
-						strcat(response, "\r\n");
-
-						printf("%s\n", response);
-
-						write(descriptorFichero, response,  strlen(response));
-							
-						// Pasar el fichero
-						char bufferfile[BUFSIZE] = { 0 };
-						int readbytes;
-
-						while( (readbytes = read(file, bufferfile, BUFSIZE-1)) ) {
-							write(descriptorFichero, bufferfile, BUFSIZE-1);
-							
-						}
-				
+						respuesta(descriptorFichero, file, OK, 9);
 						close(file);
 					} else {
 						// Error tipo 404
-						strcat(response, version);
-						strcat(response, " 404 Not Found\r\n");
-
-						char contentlenght[128] = {0};
-						sprintf(contentlenght, "Content-Lenght: %d\r\n", 0);
-						// Tipo de contenido
-						strcat(response, "Content-Type: ");
-						strcat(response, extensions[9].ext);
-						strcat(response, "\r\n");
-						// Tamaño del archivo
-						strcat(response, contentlenght);
-						strcat(response, "Server: web_sstt\r\n");
-
-						char buf[1000];
-						time_t now = time(0);
-						struct tm tm = *gmtime(&now);
-						strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
-						strcat(response, "Date: ");
-						strcat(response, buf);
-						strcat(response, "Connection: Keep-Alive\r\n");
-						strcat(response, "\r\n");
-
-						printf("%s\n", response);
-
-						write(descriptorFichero, response,  strlen(response));
+						respuesta(descriptorFichero, -1, NOENCONTRADO, -1);
 					}
-
 				}
 
 				char *email = strtok(ptr, "=");
@@ -430,100 +273,17 @@ void process_web_request(int descriptorFichero)
 					file = open("correo_ok.html", O_RDONLY);
 				}
 				if (file != -1) {
-					strcat(response, version);
-					strcat(response, " 200 OK\r\n");
-				
-					char contentlenght[128] = {0};
-					fstat(file, &fileStat);
-					sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
-					// Tipo de contenido
-					strcat(response, "Content-Type: ");
-					strcat(response, extensions[9].ext);
-					strcat(response, "\r\n");
-					// Tamaño del archivo
-					strcat(response, contentlenght);
-					strcat(response, "Server: web_sstt\r\n");
-
-					char buf[1000];
-					time_t now = time(0);
-					struct tm tm = *gmtime(&now);
-					strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
-					strcat(response, "Date: ");
-					strcat(response, buf);
-					strcat(response, "Connection: Keep-Alive\r\n");
-					strcat(response, "\r\n");
-
-					printf("%s\n", response);
-
-					write(descriptorFichero, response,  strlen(response));
-						
-					// Pasar el fichero
-					char bufferfile[BUFSIZE] = { 0 };
-					int readbytes;
-
-					while( (readbytes = read(file, bufferfile, BUFSIZE-1)) ) {
-						write(descriptorFichero, bufferfile, BUFSIZE-1);
-						
-					}
+					respuesta(descriptorFichero, file, OK, 9);
 				
 					close(file);
 				} else {
 					// Error tipo 404
-					strcat(response, version);
-					strcat(response, " 404 Not Found\r\n");
-
-					char contentlenght[128] = {0};
-					sprintf(contentlenght, "Content-Lenght: %d\r\n", 0);
-					// Tipo de contenido
-					strcat(response, "Content-Type: ");
-					strcat(response, extensions[9].ext);
-					strcat(response, "\r\n");
-					// Tamaño del archivo
-					strcat(response, contentlenght);
-					strcat(response, "Server: web_sstt\r\n");
-
-					char buf[1000];
-					time_t now = time(0);
-					struct tm tm = *gmtime(&now);
-					strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
-					strcat(response, "Date: ");
-					strcat(response, buf);
-					strcat(response, "Connection: Keep-Alive\r\n");
-					strcat(response, "\r\n");
-
-					printf("%s\n", response);
-
-					write(descriptorFichero, response,  strlen(response));
+					respuesta(descriptorFichero, -1, NOENCONTRADO, -1);
 				}
 
 			} else {
 				// Error tipo 400
-				char response[BUFSIZE] = {0};
-				strcat(response, version);
-				strcat(response, " 405 Method Not Allowed\r\n");
-
-				char contentlenght[128] = {0};
-				sprintf(contentlenght, "Content-Lenght: %d\r\n", 0);
-				// Tipo de contenido
-				strcat(response, "Content-Type: ");
-				strcat(response, extensions[9].ext);
-				strcat(response, "\r\n");
-				// Tamaño del archivo
-				strcat(response, contentlenght);
-				strcat(response, "Server: web_sstt\r\n");
-
-				char buf[1000];
-				time_t now = time(0);
-				struct tm tm = *gmtime(&now);
-				strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z\r\n", &tm);
-				strcat(response, "Date: ");
-				strcat(response, buf);
-				strcat(response, "Connection: Keep-Alive\r\n");
-				strcat(response, "\r\n");
-
-				printf("%s\n", response);
-
-				write(descriptorFichero, response,  strlen(response));
+				respuesta(descriptorFichero, -1, 400, -1);
 			}
 	}
 	printf("Fin conexion\n");
