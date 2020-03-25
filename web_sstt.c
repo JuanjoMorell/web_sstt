@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
+#include <regex.h>
 
 #define VERSION		24
 #define BUFSIZE		8096
@@ -111,17 +112,18 @@ void respuesta(int descriptor, int file, int resp, int nExt) {
 	}
 	
 	// Tipo de contenido
-	if(nExt != -1) {
-		strcat(response, "Content-Type: ");
-		strcat(response, extensions[nExt].ext);
-		strcat(response, "\r\n");
-	}
+	strcat(response, "Content-Type: ");
+	strcat(response, extensions[nExt].ext);
+	strcat(response, "\r\n");
+	
 	// Tamaño del fichero
 	char contentlenght[128] = {0};
 	if(file != -1) {
 		fstat(file, &fileStat);
 		sprintf(contentlenght, "Content-Lenght: %ld\r\n", fileStat.st_size);
 		strcat(response, contentlenght);
+	} else {
+		strcat(response, "Content-Lenght: 0\r\n");
 	}
 	
 	strcat(response, "Server: web_sstt\r\n");
@@ -141,11 +143,13 @@ void respuesta(int descriptor, int file, int resp, int nExt) {
 	write(descriptor, response,  strlen(response));
 					
 	// Pasar el fichero
-	char bufferfile[BUFSIZE] = { 0 };
-	int readbytes;
+	if(file != -1) {
+		char bufferfile[BUFSIZE] = { 0 };
+		int readbytes;
 
-	while( (readbytes = read(file, bufferfile, BUFSIZE-1)) ) {
-		write(descriptor, bufferfile, BUFSIZE-1);				
+		while( (readbytes = read(file, bufferfile, BUFSIZE-1)) ) {
+			write(descriptor, bufferfile, BUFSIZE-1);				
+		}
 	}
 }
 
@@ -155,136 +159,145 @@ void process_web_request(int descriptorFichero)
 	
 	while(PERSISTENCIA && comprobar_fd(descriptorFichero, PERS_SEGUNDOS, 0)) {
 		
-			char buffer[BUFSIZE] = {0};
+		char buffer[BUFSIZE] = {0};
 	
-			size_t tam_peticion = read(descriptorFichero, buffer, BUFSIZE);
-			printf("%s", buffer);
+		size_t tam_peticion = read(descriptorFichero, buffer, BUFSIZE);
+		printf("%s", buffer);
 
-			char mensaje[BUFSIZE] = {0};
-			memcpy(mensaje, buffer, strlen(buffer));
-			
-			if ( tam_peticion < 0 ) {
+		if ( tam_peticion < 0 ) {
 				close(descriptorFichero);
 				debug(ERROR, "system call", "read", 0);
-			}
-			
-			char *primera = strtok(buffer, "\r\n");
-			// Obtenemos los valores de la primera linea
-			char aux[BUFSIZE] = {0};
-			char *metodo, *url, *version;
-			char *save_ptr;
-			
-			strcpy(aux, primera);
+		}
 
-			// Obtenemos el metodo
-			metodo = strtok_r(primera, " ", &save_ptr);
-			// Obtenemos la url
-			url = strtok_r(NULL, " ", &save_ptr);
-			// Obtenemos la version
-			version = strtok_r(NULL, " ", &save_ptr);
-			
-			//
-			//	TRATAR LOS CASOS DE LOS DIFERENTES METODOS QUE SE USAN
-			//	(Se soporta solo GET)
-			//
+		char mensaje[BUFSIZE] = {0};
+		memcpy(mensaje, buffer, strlen(buffer));
 
-			char path[_PC_PATH_MAX] = {0};
+		char *save_linea;
+		char *primera = strtok_r(buffer, "\r\n", &save_linea);
+		// Obtenemos los valores de la primera linea
+		char aux[BUFSIZE] = {0};
+		char *metodo, *url, *version, *host, *server;
+		char *save_ptr, *save_ptr2;
+				
+		strcpy(aux, primera);
 
-			if ( strcmp(metodo, "GET") == 0 ) {
+		// Obtenemos el metodo
+		metodo = strtok_r(primera, " ", &save_ptr);
+		// Obtenemos la url
+		url = strtok_r(NULL, " ", &save_ptr);
+		// Obtenemos la version
+		version = strtok_r(NULL, " ", &save_ptr);
 
-				//Si el contenido de url es / le mandamos al cliente index.html
-				if( strcmp(url, "/") == 0 ) {
-					strcat(path, "index.html");
-					
-					int file = open(path, O_RDONLY);
-					
-					if(file != -1) {
-						respuesta(descriptorFichero, file, OK, 9);
+		char *segunda = strtok_r(NULL, "\r\n", &save_linea);
 
-						close(file);
-					} else {
-						// Error tipo  404
-						int file = open("error.html", O_RDONLY);
-						respuesta(descriptorFichero, file, NOENCONTRADO, 9);
-						close(file);
+		if (segunda != NULL) {
+			host = strtok_r(segunda, " ", &save_ptr2);
+			server = strtok_r(NULL, " ", &save_ptr2);
+		}
 
-					}
+		//
+		//	TRATAR LOS CASOS DE LOS DIFERENTES METODOS QUE SE USAN
+		//	(Se soporta solo GET)
+		//
+
+		char path[_PC_PATH_MAX] = {0};
+				
+		if ( metodo == NULL || url == NULL || version == NULL || segunda == NULL 
+			|| (segunda != NULL && (host == NULL || server == NULL)) ) {
+			respuesta(descriptorFichero, -1, 400, 9);
+		} else if ( strcmp(metodo, "GET") == 0 ) {
+
+			//Si el contenido de url es / le mandamos al cliente index.html
+			if( strcmp(url, "/") == 0 ) {
+				strcat(path, "index.html");
+				
+				int file = open(path, O_RDONLY);
+				
+				if(file != -1) {
+					respuesta(descriptorFichero, file, OK, 9);
+					close(file);
 				} else {
-					// El cliente pide un archivo distinto al index.html
-					url++;
-					strcat(path, url);
+					// Error tipo  404
+					int file = open("error.html", O_RDONLY);
+					respuesta(descriptorFichero, file, NOENCONTRADO, 9);
+					close(file);
+				}
+			} else {
+				// El cliente pide un archivo distinto al index.html
+				url++;
+				strcat(path, url);
 					
-					char *extension;
-					int nExtension = -1;
+				char *extension;
+				int nExtension = -1;
 
-					extension = url + (strlen(url) - 3);
+				extension = url + (strlen(url) - 3);
 
-					for(int i = 0; i < 10; i++) {
-						if(strcmp(extensions[i].ext, extension) == 0) {
-							nExtension = i;
-							break;
-						} 
-					}
-					if (nExtension == -1) {
-						// Error tipo 406
-						respuesta(descriptorFichero, -1, NOACEPTADO, -1);
-					}
-
-					int file = open(path, O_RDONLY);
-
-					if (file != -1) {
-						respuesta(descriptorFichero, file, OK, nExtension);
-						close(file);		
-					} else {
-						// Error tipo 404
-						respuesta(descriptorFichero, -1, NOENCONTRADO, -1);
-					}
-				} 
-			} else if (strcmp(metodo, "POST") == 0) {
-				char delim[] = "\n\n";
-				char *ptr = strtok(mensaje, delim);
-
-				while( ptr != NULL ) {
-					ptr = strtok(NULL, delim);
-					if(strstr(ptr, "email")) break;
+				for(int i = 0; i < 10; i++) {
+					if(strcmp(extensions[i].ext, extension) == 0) {
+						nExtension = i;
+						break;
+					} 
 				}
+				if (nExtension == -1) {
+					// Error tipo 406
+					respuesta(descriptorFichero, -1, NOACEPTADO, 9);
+				}
+
+				int file = open(path, O_RDONLY);
+
+				if (file != -1) {
+					respuesta(descriptorFichero, file, OK, nExtension);
+					close(file);		
+				} else {
+					// Error tipo 404
+					respuesta(descriptorFichero, -1, NOENCONTRADO, 9);
+				}
+			} 
+		} else if (strcmp(metodo, "POST") == 0) {
+			char delim[] = "\n\n";
+			char *ptr = strtok(mensaje, delim);
+
+			while( ptr != NULL ) {
+				ptr = strtok(NULL, delim);
+				if(strstr(ptr, "email")) break;
+			}
 				
-				size_t tam = strlen(ptr);
-				if ( tam == 6 ) {
-					printf("No se ha escrito un correo\n");
-					int file = open("index_fallo.html", O_RDONLY);
-					
-					if (file != -1) {
-						respuesta(descriptorFichero, file, OK, 9);
-						close(file);
-					} else {
-						// Error tipo 404
-						respuesta(descriptorFichero, -1, NOENCONTRADO, -1);
-					}
-				}
-
-				char *email = strtok(ptr, "=");
-				email = strtok(NULL, "=");
-
-				int file = open("correo_error.html", O_RDONLY);
+			size_t tam = strlen(ptr);
+			if ( tam == 6 ) {
+				printf("No se ha escrito un correo\n");
+				int file = open("index_fallo.html", O_RDONLY);
 				
-				// @ == %40
-				if (strstr(email, "juanjose.morellf%40um.es") ) {
-					file = open("correo_ok.html", O_RDONLY);
-				}
 				if (file != -1) {
 					respuesta(descriptorFichero, file, OK, 9);
-				
 					close(file);
 				} else {
 					// Error tipo 404
-					respuesta(descriptorFichero, -1, NOENCONTRADO, -1);
+					respuesta(descriptorFichero, -1, NOENCONTRADO, 9);
 				}
-
-			} else {
-				// Error tipo 400
-				respuesta(descriptorFichero, -1, 400, -1);
 			}
+			
+			char *email = strtok(ptr, "=");
+			email = strtok(NULL, "=");
+
+			int file = open("correo_error.html", O_RDONLY);
+					
+			// @ == %40
+			if (strstr(email, "juanjose.morellf%40um.es") ) {
+				file = open("correo_ok.html", O_RDONLY);
+			}
+			if (file != -1) {
+				respuesta(descriptorFichero, file, OK, 9);
+			
+				close(file);
+			} else {
+				// Error tipo 404
+				respuesta(descriptorFichero, -1, NOENCONTRADO, 9);
+			}
+		
+		} else {
+			// Error tipo 400
+			respuesta(descriptorFichero, -1, 400, 9);
+		}
 	}
 	printf("Fin conexion\n");
 	debug(LOG, "conexión", "cerrada", descriptorFichero);
