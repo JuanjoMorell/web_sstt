@@ -171,7 +171,7 @@ void process_web_request(int descriptorFichero)
 
 		char mensaje[BUFSIZE] = {0};
 		memcpy(mensaje, buffer, strlen(buffer));
-
+		
 		char *save_linea;
 		char *primera = strtok_r(buffer, "\r\n", &save_linea);
 		// Obtenemos los valores de la primera linea
